@@ -1,0 +1,6 @@
+users:
+  - user:
+      name: '这里可随便填'
+      openid: '这里填微信的 openid，靠抓包获得'
+
+
