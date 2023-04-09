@@ -2,9 +2,6 @@ import re
 import os
 import requests
 import json
-import yaml
-import time
-import random
 from dingtalkchatbot.chatbot import DingtalkChatbot
 
 getToken_url = 'https://qczj.h5yunban.com/qczj-youth-learning/cgi-bin/login/we-chat/callback'
@@ -16,13 +13,6 @@ getPersonalInfo_url = 'https://qczj.h5yunban.com/qczj-youth-learning/cgi-bin/use
 headers = {
     'Content-Type': 'text/plain'
 }
-
-
-def getYmlConfig(yaml_file='config.yml'):
-    with open(yaml_file, 'r', encoding='utf-8') as f:
-        file_data = f.read()
-    return dict(yaml.load(file_data, Loader=yaml.FullLoader))
-
 
 def getToken(openId):
     # 根据openId获得token
@@ -86,32 +76,33 @@ def getPersonalInfo(accessToken):
     return info['result']
     # return info['result']['score']
 
+# 将打卡结果发送到 Dingding
 def sendDing(text):
     DING_WEBHOOK = os.getenv("DING_WEBHOOK") # webhook
-    DING_SECRET = os.getenv("DING_SECRET")  # 加签
+    DING_SECRET = os.getenv("DING_SECRET")   # 加签
 
     dingbot = DingtalkChatbot(DING_WEBHOOK, secret = DING_SECRET) # init
-    dingbot.send_markdown(title = "青年大学习学习报告已送达, 送报员 905 持续为您服务！", text = text, is_at_all = False)
+    dingbot.send_markdown(title = "青年大学习学习报告已送达, 送报员 905 持续为您服务！", 
+                          text = text, 
+                          is_at_all = False)
     
 if __name__ == "__main__":
-    config = getYmlConfig()
-    for index, eachuser in enumerate(config['users']):
-        print(eachuser['user']['name'], 'openId为 ', eachuser['user']['openid'])
-        openid = {
-            'appid': 'wx56b888a1409a2920',
-            'openid': eachuser['user']['openid']
-        }
-        accesstoken = getToken(openid) # 用 openid 获取 token 
-        checkindata = getinfo(accesstoken) # 用 token 获取个人信息
-        if checkindata is not None:
-            personalInfo_0 = getPersonalInfo(accesstoken)
-            resStatus = signup(accesstoken, checkindata) # 打卡
-            personalInfo_1 = getPersonalInfo(accesstoken) # 获取积分
-            sendDing("青年大学习学习成功: \n\n- 打卡前的分数为: {:d} \n- 当前分数为: {:d}. \n\n 送报员 905 祝您生活愉快! ".format(personalInfo_0['score'],personalInfo_1['score']))
-            # 需要自行配置接口
-#             sendMail(eachuser,personalInfo,resStatus)
-            # 需要自行配置发送邮箱
-#             sendMail(eachuser['user']['mail'], "邮件标题", "邮件内容")
-        else:
-            sendDing("青年大学习学习失败，获取个人信息失败，请尽快查看错误。")
-        print('===========================================')
+    OPENID = os.getenv("OPENID") # 系统变量
+
+    print('openId为 ', OPENID)
+    openid = {
+        'appid': 'wx56b888a1409a2920',
+        'openid': OPENID
+    }
+    accesstoken = getToken(openid) # 用 openid 获取 token 
+    checkindata = getinfo(accesstoken) # 用 token 获取个人信息
+    if checkindata is not None:
+        personalInfo_0 = getPersonalInfo(accesstoken)
+        resStatus = signup(accesstoken, checkindata) # 打卡
+        personalInfo_1 = getPersonalInfo(accesstoken) # 获取积分
+        sendDing("青年大学习学习成功: \n\n- 打卡前的分数为: {:d} \n- 当前分数为: {:d}. \n\n 送报员 905 祝您生活愉快! "
+                 .format(personalInfo_0['score'],personalInfo_1['score']))
+
+    else:
+        sendDing("青年大学习学习失败，获取个人信息失败，请尽快查看错误。")
+    print('===========================================')
